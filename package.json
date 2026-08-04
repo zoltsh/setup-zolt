@@ -1,0 +1,49 @@
+{
+  "name": "setup-zolt",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Install a verified Zolt release in GitHub Actions.",
+  "author": "zoltsh",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zoltsh/setup-zolt.git"
+  },
+  "homepage": "https://github.com/zoltsh/setup-zolt#readme",
+  "bugs": {
+    "url": "https://github.com/zoltsh/setup-zolt/issues"
+  },
+  "engines": {
+    "node": "^22.18.0 || >=24"
+  },
+  "scripts": {
+    "actionlint": "actionlint",
+    "bundle": "ncc build src/index.ts -o dist --license licenses.txt",
+    "bundle:check": "node scripts/check-bundle.mjs",
+    "check": "npm run typecheck && npm run lint && npm run smoke:typecheck && npm run test:coverage && npm run bundle:check && npm run smoke && npm run actionlint",
+    "lint": "eslint .",
+    "smoke": "smoque run smoke/",
+    "smoke:typecheck": "tsc -p smoke/tsconfig.json",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@actions/core": "3.0.1",
+    "@actions/http-client": "4.0.1",
+    "@actions/tool-cache": "4.0.0",
+    "tar": "7.5.22"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "@vercel/ncc": "0.44.1",
+    "@vitest/coverage-v8": "4.1.10",
+    "actionlint": "2.0.6",
+    "eslint": "10.8.0",
+    "eslint-config-rubric": "0.1.0-alpha.0",
+    "smoque": "0.1.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  }
+}

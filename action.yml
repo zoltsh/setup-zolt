@@ -1,0 +1,33 @@
+name: Setup Zolt
+description: Install a verified native Zolt release
+author: zoltsh
+
+inputs:
+  version:
+    description: Exact Zolt version to install, or latest
+    required: true
+  sha256:
+    description: Expected archive SHA-256; required for an exact version
+    required: false
+  channel:
+    description: Release channel to use
+    required: false
+    default: zap
+
+outputs:
+  version:
+    description: Installed Zolt version
+  target:
+    description: Installed Zolt release target
+  path:
+    description: Absolute path to the installed Zolt executable
+  sha256:
+    description: Verified native archive SHA-256
+
+runs:
+  using: node24
+  main: dist/index.js
+
+branding:
+  icon: zap
+  color: yellow

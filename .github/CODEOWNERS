@@ -1,0 +1,7 @@
+* @zoltsh/release-engineers
+
+/.github/ @zoltsh/release-engineers
+/action.yml @zoltsh/release-engineers
+/dist/ @zoltsh/release-engineers
+/src/constants.ts @zoltsh/release-engineers
+/src/signatures.ts @zoltsh/release-engineers

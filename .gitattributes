@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.png binary
+*.zip binary
+*.gz binary
+dist/** linguist-generated=true
+dist/index.js -whitespace

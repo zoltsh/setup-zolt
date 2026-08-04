@@ -1,0 +1,174 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  schedule:
+    - cron: "17 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: setup-zolt-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check repository
+        run: scripts/check
+
+      - name: Check dependency vulnerabilities
+        run: npm audit
+
+      - name: Check clean generated state
+        run: git diff --exit-code
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+
+  integration:
+    name: integration ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            runner: ubuntu-24.04
+            sha256: e05b00e206d312ddf15954370ed904c114f7037f9da6a0a69cc7ddd4ee7e3f55
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+            sha256: 7bb6a9c1953dbc4a2a242665da8a1219a6fb0f90e6f31c62c282e0523afd91a0
+          - target: macos-arm64
+            runner: macos-15
+            sha256: a7f899bdeab3f8027d52b4fabc8ebf69859a7c8f1d84d90d84817e977e22dc91
+          - target: macos-x64
+            runner: macos-15-intel
+            sha256: ed576be109b0280ce1a4d6951d63db037c05491e2d1feab231f0118b7d843721
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up exact Zolt
+        id: setup
+        uses: ./
+        with:
+          channel: zap
+          version: 0.1.0-zap.20260804.6ccff768b7bc
+          sha256: ${{ matrix.sha256 }}
+
+      - name: Verify outputs and PATH
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ matrix.sha256 }}
+          EXPECTED_TARGET: ${{ matrix.target }}
+          INSTALLED_PATH: ${{ steps.setup.outputs.path }}
+          INSTALLED_SHA256: ${{ steps.setup.outputs.sha256 }}
+          INSTALLED_TARGET: ${{ steps.setup.outputs.target }}
+          INSTALLED_VERSION: ${{ steps.setup.outputs.version }}
+        run: |
+          set -euo pipefail
+          test "$INSTALLED_VERSION" = "0.1.0-zap.20260804.6ccff768b7bc"
+          test "$INSTALLED_TARGET" = "$EXPECTED_TARGET"
+          test "$INSTALLED_SHA256" = "$EXPECTED_SHA256"
+          test -x "$INSTALLED_PATH"
+          test "$(zolt --version)" = "$INSTALLED_VERSION"
+          zolt init --cwd "$RUNNER_TEMP/setup-zolt-smoke" smoke >/dev/null
+
+  negative:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Reject an incorrect digest
+        id: setup
+        continue-on-error: true
+        uses: ./
+        with:
+          channel: zap
+          version: 0.1.0-zap.20260804.6ccff768b7bc
+          sha256: 0000000000000000000000000000000000000000000000000000000000000000
+
+      - name: Require closed failure
+        env:
+          SETUP_OUTCOME: ${{ steps.setup.outcome }}
+        run: test "$SETUP_OUTCOME" = "failure"
+
+  latest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up latest zap
+        id: setup
+        uses: ./
+        with:
+          channel: zap
+          version: latest
+
+      - name: Verify resolved release and PATH
+        shell: bash
+        env:
+          INSTALLED_PATH: ${{ steps.setup.outputs.path }}
+          INSTALLED_SHA256: ${{ steps.setup.outputs.sha256 }}
+          INSTALLED_TARGET: ${{ steps.setup.outputs.target }}
+          INSTALLED_VERSION: ${{ steps.setup.outputs.version }}
+        run: |
+          set -euo pipefail
+          test -n "$INSTALLED_VERSION"
+          test "$INSTALLED_TARGET" = "linux-x64"
+          [[ "$INSTALLED_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          test -x "$INSTALLED_PATH"
+          test "$(zolt --version)" = "$INSTALLED_VERSION"
+          zolt init --cwd "$RUNNER_TEMP/setup-zolt-latest-smoke" smoke >/dev/null
