@@ -8,6 +8,9 @@ updates:
       development-tooling:
         dependency-type: development
     ignore:
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
       - dependency-name: typescript
         update-types:
           - version-update:semver-major
