@@ -38,6 +38,21 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Install actionlint
+        env:
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+          ACTIONLINT_VERSION: 1.7.12
+        run: |
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          bin="$RUNNER_TEMP/actionlint-bin"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output "$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "$ACTIONLINT_SHA256  $archive" | sha256sum --check --strict
+          mkdir -p "$bin"
+          tar -xzf "$archive" -C "$bin" actionlint
+          echo "$bin" >> "$GITHUB_PATH"
+
       - name: Check repository
         run: scripts/check
 

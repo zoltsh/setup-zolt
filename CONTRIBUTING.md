@@ -2,6 +2,8 @@
 
 Keep each change small enough to review as one security-sensitive decision.
 
+Install Node.js 22.18 or newer and `actionlint` before running the checks.
+
 Before opening a pull request:
 
 ```console
