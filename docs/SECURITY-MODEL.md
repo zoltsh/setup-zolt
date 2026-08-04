@@ -93,12 +93,13 @@ and the executable is required to remain beneath the owned extraction root.
 
 ### Cache
 
-The cache key includes the exact version and target. A bounded, regular,
-non-symlink marker inside the cache records the schema, version, target, and
-checksum. Missing, malformed, oversized, or stale markers stop the action. The
-cached binary must also be a regular non-symlink whose real path remains inside
-the cache root. The signed metadata check and binary version check still run on
-cache hits.
+The cache key includes the exact version and target. A bounded, regular marker
+inside the cache records the schema, version, target, and checksum. The action
+opens the marker without following symlinks, then checks and reads it through
+that same file handle. Missing, malformed, oversized, or stale markers stop the
+action. The cached binary must also be a regular non-symlink whose real path
+remains inside the cache root. The signed metadata check and binary version
+check still run on cache hits.
 
 A user with write access to a self-hosted runner can tamper with both cache data
 and local execution. That runner is outside this action's security boundary.

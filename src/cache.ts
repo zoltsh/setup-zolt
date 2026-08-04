@@ -1,4 +1,5 @@
-import { lstat, readFile, realpath, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { lstat, open, realpath, writeFile } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 
 import * as toolCache from '@actions/tool-cache';
@@ -44,20 +45,31 @@ export async function verifyCacheMarker(
     const markerPath = resolve(root, MARKER);
     let payload: Buffer;
     try {
-        const status = await lstat(markerPath);
-        if (!status.isFile() || status.isSymbolicLink() || status.size === 0 || status.size > MAX_CACHE_MARKER_BYTES) {
-            throw new SetupZoltError(
-                `Cached Zolt ${version} for ${target} has an invalid verification marker; refuse to trust this cache entry.`,
-            );
-        }
-        payload = await readFile(markerPath);
-        if (payload.length > MAX_CACHE_MARKER_BYTES) {
-            throw new SetupZoltError(
-                `Cached Zolt ${version} for ${target} has an oversized verification marker; refuse to trust this cache entry.`,
-            );
+        const marker = await open(markerPath, constants.O_RDONLY | constants.O_NOFOLLOW);
+        try {
+            const status = await marker.stat();
+            if (!status.isFile() || status.size === 0 || status.size > MAX_CACHE_MARKER_BYTES) {
+                throw new SetupZoltError(
+                    `Cached Zolt ${version} for ${target} has an invalid verification marker; refuse to trust this cache entry.`,
+                );
+            }
+            payload = await marker.readFile();
+            if (payload.length > MAX_CACHE_MARKER_BYTES) {
+                throw new SetupZoltError(
+                    `Cached Zolt ${version} for ${target} has an oversized verification marker; refuse to trust this cache entry.`,
+                );
+            }
+        } finally {
+            await marker.close();
         }
     } catch (error) {
         if (error instanceof SetupZoltError) throw error;
+        if (hasErrorCode(error, 'ELOOP')) {
+            throw new SetupZoltError(
+                `Cached Zolt ${version} for ${target} has an invalid verification marker; refuse to trust this cache entry.`,
+                { cause: error },
+            );
+        }
         throw new SetupZoltError(
             `Cached Zolt ${version} for ${target} is missing its verification marker; refuse to trust this cache entry.`,
             { cause: error },
@@ -75,6 +87,10 @@ export async function verifyCacheMarker(
             `Cached Zolt ${version} for ${target} does not match the requested verified release; refuse to reuse it.`,
         );
     }
+}
+
+function hasErrorCode(error: unknown, code: string): boolean {
+    return typeof error === 'object' && error !== null && 'code' in error && error.code === code;
 }
 
 export async function resolveCachedBinary(root: string, version: string, target: ReleaseTarget): Promise<string> {
