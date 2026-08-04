@@ -14,7 +14,7 @@ steps:
     with:
       persist-credentials: false
 
-  - uses: zoltsh/setup-zolt@<full-commit-sha>
+  - uses: zoltsh/setup-zolt@daaac64a8f2b58dd8ee0ab53b16085a64e20a0ad # v1.0.2
     with:
       channel: zap
       version: 0.1.0-zap.20260804.6ccff768b7bc
@@ -34,7 +34,7 @@ Use `latest` when a workflow should pick up each new channel release
 automatically:
 
 ```yaml
-- uses: zoltsh/setup-zolt@<full-commit-sha>
+- uses: zoltsh/setup-zolt@daaac64a8f2b58dd8ee0ab53b16085a64e20a0ad # v1.0.2
   with:
     channel: zap
     version: latest
@@ -73,7 +73,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: zoltsh/setup-zolt@<full-commit-sha>
+      - uses: zoltsh/setup-zolt@daaac64a8f2b58dd8ee0ab53b16085a64e20a0ad # v1.0.2
         with:
           channel: zap
           version: 0.1.0-zap.20260804.6ccff768b7bc

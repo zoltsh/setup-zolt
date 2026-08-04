@@ -36,7 +36,7 @@ steps:
     with:
       persist-credentials: false
 
-  - uses: zoltsh/setup-zolt@<full-commit-sha>
+  - uses: zoltsh/setup-zolt@daaac64a8f2b58dd8ee0ab53b16085a64e20a0ad # v1.0.2
     with:
       channel: zap
       version: 0.1.0-zap.20260804.6ccff768b7bc
@@ -52,7 +52,7 @@ own value. The example above uses `ubuntu-24.04` (`linux-x64`). See the
 To follow the current channel release instead:
 
 ```yaml
-- uses: zoltsh/setup-zolt@<full-commit-sha>
+- uses: zoltsh/setup-zolt@daaac64a8f2b58dd8ee0ab53b16085a64e20a0ad # v1.0.2
   with:
     channel: zap
     version: latest
