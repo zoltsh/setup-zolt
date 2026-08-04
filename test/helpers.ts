@@ -7,28 +7,16 @@ export const FIXTURE_SHA256 = '466b8d45f69781c81ba4851a70cc9682c27debeac5e9917f6
 export const FIXTURE_TARGET = 'linux-x64';
 export const FIXTURE_ARCHIVE = `zolt-${FIXTURE_VERSION}-${FIXTURE_TARGET}.tar.gz`;
 
-export interface IndexFixture {
-    channel: string;
-    schemaVersion: number;
-    updatedAt: string;
-    versions: Array<{
-        artifacts: Array<{
-            archive: string;
-            archiveUrl: string;
-            binaryName: string;
-            checksumUrl: string;
-            format: string;
-            sha256: string;
-            target: string;
-        }>;
-        commit: string;
-        createdAt: string;
-        version: string;
-    }>;
-}
-
 export interface ChannelFixture {
-    artifacts: IndexFixture['versions'][number]['artifacts'];
+    artifacts: Array<{
+        archive: string;
+        archiveUrl: string;
+        binaryName: string;
+        checksumUrl: string;
+        format: string;
+        sha256: string;
+        target: string;
+    }>;
     channel: string;
     commit: string;
     createdAt: string;
@@ -36,44 +24,26 @@ export interface ChannelFixture {
     version: string;
 }
 
-export function validIndex(): IndexFixture {
-    const archiveUrl = githubArchiveUrl(FIXTURE_VERSION, FIXTURE_ARCHIVE);
+export function validChannel(version = FIXTURE_VERSION): ChannelFixture {
+    const archive = `zolt-${version}-${FIXTURE_TARGET}.tar.gz`;
+    const archiveUrl = githubArchiveUrl(version, archive);
     return {
-        channel: 'zap',
-        schemaVersion: 1,
-        updatedAt: '2026-07-28T11:04:26Z',
-        versions: [
+        artifacts: [
             {
-                artifacts: [
-                    {
-                        archive: FIXTURE_ARCHIVE,
-                        archiveUrl,
-                        binaryName: 'zolt',
-                        checksumUrl: `${archiveUrl}.sha256`,
-                        format: 'tar.gz',
-                        sha256: FIXTURE_SHA256,
-                        target: FIXTURE_TARGET,
-                    },
-                ],
-                commit: 'ec2351c8774658f8790b47ea8081b7b8d1343938',
-                createdAt: '2026-07-28T11:04:26Z',
-                version: FIXTURE_VERSION,
+                archive,
+                archiveUrl,
+                binaryName: 'zolt',
+                checksumUrl: `${archiveUrl}.sha256`,
+                format: 'tar.gz',
+                sha256: FIXTURE_SHA256,
+                target: FIXTURE_TARGET,
             },
         ],
-    };
-}
-
-export function validChannel(): ChannelFixture {
-    const index = validIndex();
-    const current = index.versions[0];
-    if (current === undefined) throw new Error('fixture is missing its current version');
-    return {
-        artifacts: structuredClone(current.artifacts),
-        channel: index.channel,
-        commit: current.commit,
-        createdAt: current.createdAt,
-        schemaVersion: index.schemaVersion,
-        version: current.version,
+        channel: 'zap',
+        commit: 'ec2351c8774658f8790b47ea8081b7b8d1343938',
+        createdAt: '2026-07-28T11:04:26Z',
+        schemaVersion: 1,
+        version,
     };
 }
 

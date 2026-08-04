@@ -26,10 +26,30 @@ describe('bounded HTTP transport', () => {
 
     it('reads metadata and streams archives while hashing', async () => {
         const payload = Buffer.from('verified bytes');
-        const metadataClient = new FakeHttpClient([response(200, payload, payload.length.toString())]);
-        const archiveClient = new FakeHttpClient([response(200, payload, payload.length.toString())]);
+        const metadataClient = new FakeHttpClient([
+            response(200, payload, payload.length.toString()),
+            response(200, payload, payload.length.toString()),
+        ]);
+        const archiveClient = new FakeHttpClient([
+            response(200, payload, payload.length.toString()),
+            response(200, payload, payload.length.toString()),
+        ]);
         const transport = new ActionsHttpTransport(metadataClient, archiveClient);
-        await expect(transport.read(new URL('https://example.test/index'), 100, 'fixture')).resolves.toEqual(payload);
+        await expect(transport.read(
+            new URL('https://dist.zolt.sh/channels/zap.json'),
+            100,
+            'current metadata',
+        )).resolves.toEqual(payload);
+        await expect(transport.read(
+            new URL('https://github.com/zoltsh/releases/releases/download/release/channel-zap.json'),
+            100,
+            'exact metadata',
+        )).resolves.toEqual(payload);
+        await expect(transport.read(
+            new URL('https://github.com.evil.test/channel-zap.json'),
+            100,
+            'foreign metadata',
+        )).resolves.toEqual(payload);
         const root = await temporaryRoot();
         const destination = resolve(root, 'download');
         const result = await transport.download(new URL('https://example.test/archive'), destination, 100, 'fixture');
@@ -38,12 +58,24 @@ describe('bounded HTTP transport', () => {
             sha256: createHash('sha256').update(payload).digest('hex'),
         });
         await expect(readFile(destination)).resolves.toEqual(payload);
-        expect(metadataClient.requestedUrls).toEqual(['https://example.test/index']);
-        expect(archiveClient.requestedUrls).toEqual(['https://example.test/archive']);
-        expect(metadataClient.requestedHeaders).toEqual([{
-            accept: 'application/octet-stream',
-            'accept-encoding': 'identity',
-        }]);
+        expect(metadataClient.requestedUrls).toEqual([
+            'https://dist.zolt.sh/channels/zap.json',
+            'https://github.com.evil.test/channel-zap.json',
+        ]);
+        expect(archiveClient.requestedUrls).toEqual([
+            'https://github.com/zoltsh/releases/releases/download/release/channel-zap.json',
+            'https://example.test/archive',
+        ]);
+        expect(metadataClient.requestedHeaders).toEqual([
+            {
+                accept: 'application/octet-stream',
+                'accept-encoding': 'identity',
+            },
+            {
+                accept: 'application/octet-stream',
+                'accept-encoding': 'identity',
+            },
+        ]);
         transport.dispose();
         expect(metadataClient.disposed).toBe(true);
         expect(archiveClient.disposed).toBe(true);

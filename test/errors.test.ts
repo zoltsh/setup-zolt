@@ -5,8 +5,8 @@ import { SetupZoltError, errorMessage } from '../src/errors';
 describe('action error messages', () => {
     it('renders a bounded, non-duplicated cause chain', () => {
         const root = new Error('socket closed');
-        const wrapped = new SetupZoltError('Could not read release index.', { cause: root });
-        expect(errorMessage(wrapped)).toBe('Could not read release index.: socket closed');
+        const wrapped = new SetupZoltError('Could not read release metadata.', { cause: root });
+        expect(errorMessage(wrapped)).toBe('Could not read release metadata.: socket closed');
         expect(errorMessage(new SetupZoltError('Operation failed: socket closed', { cause: root })))
             .toBe('Operation failed: socket closed');
     });

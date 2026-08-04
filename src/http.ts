@@ -8,10 +8,12 @@ import { pipeline } from 'node:stream/promises';
 
 import { HttpClient } from '@actions/http-client';
 
+import { RELEASE_ASSET_ORIGIN } from './constants';
 import { SetupZoltError, errorMessage } from './errors';
 import type { DownloadResult, Transport } from './types';
 
 const HTTP_OK = 200;
+const RELEASE_ASSET_ORIGIN_URL = new URL(RELEASE_ASSET_ORIGIN);
 const DOWNLOAD_HEADERS = {
     accept: 'application/octet-stream',
     'accept-encoding': 'identity',
@@ -34,9 +36,9 @@ export class ActionsHttpTransport implements Transport {
 
     constructor(metadataClient?: HttpClientLike, archiveClient?: HttpClientLike) {
         if (metadataClient === undefined) {
-            // Signed metadata must come directly from dist.zolt.sh. GitHub may
-            // redirect release archives to its asset host; the checksum still
-            // pins the downloaded bytes.
+            // Current metadata must come directly from dist.zolt.sh. GitHub
+            // may redirect immutable release metadata and archives to its
+            // asset host; signatures and checksums still pin their bytes.
             this.#metadataClient = createClient(false);
             this.#archiveClient = archiveClient ?? createClient(true);
             return;
@@ -46,7 +48,10 @@ export class ActionsHttpTransport implements Transport {
     }
 
     public async read(url: URL, maximumBytes: number, label: string): Promise<Buffer> {
-        const message = await get(this.#metadataClient, url, label);
+        const client = url.origin === RELEASE_ASSET_ORIGIN_URL.origin
+            ? this.#archiveClient
+            : this.#metadataClient;
+        const message = await get(client, url, label);
         assertMessage(message, url, maximumBytes, label);
         const chunks: Buffer[] = [];
         let bytes = 0;

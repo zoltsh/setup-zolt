@@ -1,5 +1,4 @@
 import {
-    MAX_INDEX_VERSIONS,
     RELEASE_METADATA_SCHEMA_VERSION,
     RELEASE_ASSET_ORIGIN,
     ZAP_VERSION_PATTERN,
@@ -25,33 +24,8 @@ export interface ParsedReleaseVersion {
     readonly version: string;
 }
 
-export interface ParsedReleaseIndex {
-    readonly channel: Channel;
-    readonly versions: readonly ParsedReleaseVersion[];
-}
-
 export interface ParsedChannelManifest extends ParsedReleaseVersion {
     readonly channel: Channel;
-}
-
-export function parseReleaseIndex(payload: Buffer): ParsedReleaseIndex {
-    const label = 'Release index';
-    const root = object(parseJson(payload, label), label);
-    exactKeys(root, ['schemaVersion', 'channel', 'updatedAt', 'versions'], [], label);
-    schemaVersion(root, label);
-    const channel = releaseChannel(root, label);
-    timestamp(string(root, 'updatedAt', label), `${label} updatedAt`);
-    const versionValues = array(root, 'versions', label);
-    if (versionValues.length === 0 || versionValues.length > MAX_INDEX_VERSIONS) {
-        throw new SetupZoltError(
-            `${label} must contain between 1 and ${MAX_INDEX_VERSIONS.toString()} versions.`,
-        );
-    }
-    const versions = versionValues.map((value, index) =>
-        parseReleaseVersion(value, channel, `${label} version ${index.toString()}`),
-    );
-    unique(versions.map((item) => item.version), `${label} repeats version`);
-    return { channel, versions };
 }
 
 export function parseChannelManifest(payload: Buffer): ParsedChannelManifest {
@@ -61,12 +35,6 @@ export function parseChannelManifest(payload: Buffer): ParsedChannelManifest {
     schemaVersion(root, label);
     const channel = releaseChannel(root, label);
     return { channel, ...parseReleaseFields(root, channel, label) };
-}
-
-function parseReleaseVersion(value: unknown, channel: Channel, label: string): ParsedReleaseVersion {
-    const record = object(value, label);
-    exactKeys(record, ['version', 'commit', 'createdAt', 'artifacts'], [], label);
-    return parseReleaseFields(record, channel, label);
 }
 
 function parseReleaseFields(

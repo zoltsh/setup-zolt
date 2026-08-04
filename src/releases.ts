@@ -2,17 +2,14 @@ import {
     DISTRIBUTION_ORIGIN,
     LATEST_VERSION_SELECTOR,
     MAX_CHANNEL_MANIFEST_BYTES,
-    MAX_INDEX_BYTES,
     MAX_SIGNATURE_BYTES,
+    RELEASE_ASSET_ORIGIN,
     TRUSTED_KEYS,
+    ZAP_VERSION_PATTERN,
 } from './constants';
 import { SetupZoltError } from './errors';
 import { decodeUtf8 } from './json';
-import {
-    type ParsedReleaseVersion,
-    parseChannelManifest,
-    parseReleaseIndex,
-} from './release-schema';
+import { type ParsedReleaseVersion, parseChannelManifest } from './release-schema';
 import { verifyReleaseSignature } from './signatures';
 import type {
     Channel,
@@ -22,7 +19,7 @@ import type {
     TrustedKey,
 } from './types';
 
-export { parseChannelManifest, parseReleaseIndex } from './release-schema';
+export { parseChannelManifest } from './release-schema';
 
 export async function resolveRelease(
     transport: Transport,
@@ -53,8 +50,13 @@ export function channelManifestUrl(channel: Channel): URL {
     return new URL(`/channels/${channel}.json`, DISTRIBUTION_ORIGIN);
 }
 
-export function releaseIndexUrl(channel: Channel): URL {
-    return new URL(`/releases/${channel}.json`, DISTRIBUTION_ORIGIN);
+export function exactReleaseManifestUrl(channel: Channel, version: string): URL {
+    if (!ZAP_VERSION_PATTERN.test(version)) {
+        throw new SetupZoltError(`Cannot build metadata URL for invalid exact ${channel} version \`${version}\`.`);
+    }
+    return new URL(
+        `${RELEASE_ASSET_ORIGIN}/zolt-${channel}-${version}/channel-${channel}.json`,
+    );
 }
 
 async function resolveCurrentRelease(
@@ -79,19 +81,20 @@ async function resolveExactRelease(
     version: string,
     trustedKeys: ReadonlyMap<string, TrustedKey>,
 ): Promise<ParsedReleaseVersion> {
-    const index = await readSignedMetadata(
+    const manifest = await readSignedMetadata(
         transport,
-        releaseIndexUrl(channel),
-        MAX_INDEX_BYTES,
-        'release index',
-        parseReleaseIndex,
+        exactReleaseManifestUrl(channel, version),
+        MAX_CHANNEL_MANIFEST_BYTES,
+        'exact release manifest',
+        parseChannelManifest,
         trustedKeys,
     );
-    const selected = index.versions.find((candidate) => candidate.version === version);
-    if (selected === undefined) {
-        throw new SetupZoltError(`Release channel \`${channel}\` does not contain exact Zolt version \`${version}\`.`);
+    if (manifest.version !== version) {
+        throw new SetupZoltError(
+            `Exact release metadata selected ${manifest.channel} version \`${manifest.version}\`; expected ${channel} version \`${version}\`.`,
+        );
     }
-    return selected;
+    return manifest;
 }
 
 async function readSignedMetadata<T>(

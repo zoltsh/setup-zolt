@@ -11,7 +11,7 @@ strict input and runner-target validation
     |
     v
 latest: dist.zolt.sh/channels/<channel>.json + .sig
-exact:  dist.zolt.sh/releases/<channel>.json + .sig
+exact:  immutable GitHub Release/channel-<channel>.json + .sig
     |
     v
 Ed25519 verification of raw bytes
@@ -36,7 +36,7 @@ verified runner tool-cache entry -> PATH and outputs
 | `inputs.ts` | Public action input validation |
 | `platform.ts` | Runner OS and architecture mapping |
 | `signatures.ts` | Separate signature-file parsing and Ed25519 verification |
-| `release-schema.ts` | Strict channel-manifest and release-index parsing |
+| `release-schema.ts` | Strict channel-manifest parsing |
 | `releases.ts` | Signed metadata download and version selection |
 | `http.ts` | Proxy-aware, bounded streaming transport |
 | `archive.ts` | Tar entry policy, inspection, and extraction |
@@ -52,8 +52,9 @@ separate so each failure boundary can be tested without a live workflow.
 ## Rules that must stay true
 
 1. The action resolves a moving version only for explicit `version: latest`.
-2. The selected channel manifest or release index is authenticated before its
-   JSON is interpreted.
+2. The selected channel manifest is authenticated before its JSON is
+   interpreted. Exact versions use the frozen copy attached to their immutable
+   GitHub Release.
 3. An exact version requires a workflow checksum. When present, that checksum
    must match authenticated metadata.
 4. The downloaded bytes must match that same checksum.

@@ -40,7 +40,7 @@ export async function runAction(dependencies: ActionDependencies = {}): Promise<
         );
         actionCore.info(inputs.version === LATEST_VERSION_SELECTOR
             ? `Resolving the latest Zolt for ${target} from signed channel ${inputs.channel}.`
-            : `Resolving exact Zolt ${inputs.version} for ${target} from channel ${inputs.channel}.`);
+            : `Resolving exact Zolt ${inputs.version} for ${target} from signed ${inputs.channel} release metadata.`);
         const result = await (dependencies.install ?? installZolt)(inputs, target, transport);
         actionCore.addPath(dirname(result.binary));
         actionCore.setOutput('version', result.version);

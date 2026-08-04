@@ -34065,8 +34065,6 @@ const MAX_ARCHIVE_ENTRY_BYTES = 256 * 1024 * 1024;
 const MAX_CACHE_MARKER_BYTES = 4 * 1024;
 const MAX_CHANNEL_MANIFEST_BYTES = 64 * 1024;
 const MAX_EXTRACTED_BYTES = 512 * 1024 * 1024;
-const MAX_INDEX_BYTES = 2 * 1024 * 1024;
-const MAX_INDEX_VERSIONS = 200;
 const MAX_SIGNATURE_BYTES = 8 * 1024;
 const SUPPORTED_CHANNELS = ['zap'];
 const ZAP_VERSION_PATTERN = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)-zap\.\d{8}\.[0-9a-f]{12}$/u;
@@ -34124,7 +34122,9 @@ const external_node_stream_promises_namespaceObject = __WEBPACK_EXTERNAL_createR
 
 
 
+
 const HTTP_OK = 200;
+const RELEASE_ASSET_ORIGIN_URL = new URL(RELEASE_ASSET_ORIGIN);
 const DOWNLOAD_HEADERS = {
     accept: 'application/octet-stream',
     'accept-encoding': 'identity',
@@ -34134,9 +34134,9 @@ class ActionsHttpTransport {
     #metadataClient;
     constructor(metadataClient, archiveClient) {
         if (metadataClient === undefined) {
-            // Signed metadata must come directly from dist.zolt.sh. GitHub may
-            // redirect release archives to its asset host; the checksum still
-            // pins the downloaded bytes.
+            // Current metadata must come directly from dist.zolt.sh. GitHub
+            // may redirect immutable release metadata and archives to its
+            // asset host; signatures and checksums still pin their bytes.
             this.#metadataClient = createClient(false);
             this.#archiveClient = archiveClient ?? createClient(true);
             return;
@@ -34145,7 +34145,10 @@ class ActionsHttpTransport {
         this.#archiveClient = archiveClient ?? metadataClient;
     }
     async read(url, maximumBytes, label) {
-        const message = await get(this.#metadataClient, url, label);
+        const client = url.origin === RELEASE_ASSET_ORIGIN_URL.origin
+            ? this.#archiveClient
+            : this.#metadataClient;
+        const message = await get(client, url, label);
         assertMessage(message, url, maximumBytes, label);
         const chunks = [];
         let bytes = 0;
@@ -35428,21 +35431,6 @@ const RELEASE_TARGETS = new Set([
     'macos-x64',
 ]);
 const RFC3339_UTC = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?Z$/u;
-function parseReleaseIndex(payload) {
-    const label = 'Release index';
-    const root = object(parseJson(payload, label), label);
-    exactKeys(root, ['schemaVersion', 'channel', 'updatedAt', 'versions'], [], label);
-    schemaVersion(root, label);
-    const channel = releaseChannel(root, label);
-    timestamp(string(root, 'updatedAt', label), `${label} updatedAt`);
-    const versionValues = array(root, 'versions', label);
-    if (versionValues.length === 0 || versionValues.length > MAX_INDEX_VERSIONS) {
-        throw new SetupZoltError(`${label} must contain between 1 and ${MAX_INDEX_VERSIONS.toString()} versions.`);
-    }
-    const versions = versionValues.map((value, index) => parseReleaseVersion(value, channel, `${label} version ${index.toString()}`));
-    unique(versions.map((item) => item.version), `${label} repeats version`);
-    return { channel, versions };
-}
 function parseChannelManifest(payload) {
     const label = 'Channel manifest';
     const root = object(parseJson(payload, label), label);
@@ -35450,11 +35438,6 @@ function parseChannelManifest(payload) {
     schemaVersion(root, label);
     const channel = releaseChannel(root, label);
     return { channel, ...parseReleaseFields(root, channel, label) };
-}
-function parseReleaseVersion(value, channel, label) {
-    const record = object(value, label);
-    exactKeys(record, ['version', 'commit', 'createdAt', 'artifacts'], [], label);
-    return parseReleaseFields(record, channel, label);
 }
 function parseReleaseFields(record, channel, label) {
     const version = safeSegment(string(record, 'version', label), `${label} version`);
@@ -35682,20 +35665,22 @@ async function resolveRelease(transport, channel, version, target, trustedKeys =
 function channelManifestUrl(channel) {
     return new URL(`/channels/${channel}.json`, DISTRIBUTION_ORIGIN);
 }
-function releaseIndexUrl(channel) {
-    return new URL(`/releases/${channel}.json`, DISTRIBUTION_ORIGIN);
+function exactReleaseManifestUrl(channel, version) {
+    if (!ZAP_VERSION_PATTERN.test(version)) {
+        throw new SetupZoltError(`Cannot build metadata URL for invalid exact ${channel} version \`${version}\`.`);
+    }
+    return new URL(`${RELEASE_ASSET_ORIGIN}/zolt-${channel}-${version}/channel-${channel}.json`);
 }
 async function resolveCurrentRelease(transport, channel, trustedKeys) {
     const manifest = await readSignedMetadata(transport, channelManifestUrl(channel), MAX_CHANNEL_MANIFEST_BYTES, 'channel manifest', parseChannelManifest, trustedKeys);
     return manifest;
 }
 async function resolveExactRelease(transport, channel, version, trustedKeys) {
-    const index = await readSignedMetadata(transport, releaseIndexUrl(channel), MAX_INDEX_BYTES, 'release index', parseReleaseIndex, trustedKeys);
-    const selected = index.versions.find((candidate) => candidate.version === version);
-    if (selected === undefined) {
-        throw new SetupZoltError(`Release channel \`${channel}\` does not contain exact Zolt version \`${version}\`.`);
+    const manifest = await readSignedMetadata(transport, exactReleaseManifestUrl(channel, version), MAX_CHANNEL_MANIFEST_BYTES, 'exact release manifest', parseChannelManifest, trustedKeys);
+    if (manifest.version !== version) {
+        throw new SetupZoltError(`Exact release metadata selected ${manifest.channel} version \`${manifest.version}\`; expected ${channel} version \`${version}\`.`);
     }
-    return selected;
+    return manifest;
 }
 async function readSignedMetadata(transport, url, maximumBytes, label, parse, trustedKeys) {
     const [payload, signature] = await Promise.all([
@@ -35847,7 +35832,7 @@ async function runAction(dependencies = {}) {
         const target = resolveTarget(dependencies.platform ?? process.platform, dependencies.architecture ?? process.arch);
         actionCore.info(inputs.version === LATEST_VERSION_SELECTOR
             ? `Resolving the latest Zolt for ${target} from signed channel ${inputs.channel}.`
-            : `Resolving exact Zolt ${inputs.version} for ${target} from channel ${inputs.channel}.`);
+            : `Resolving exact Zolt ${inputs.version} for ${target} from signed ${inputs.channel} release metadata.`);
         const result = await (dependencies.install ?? installZolt)(inputs, target, transport);
         actionCore.addPath((0,external_node_path_namespaceObject.dirname)(result.binary));
         actionCore.setOutput('version', result.version);

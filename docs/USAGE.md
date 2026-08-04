@@ -84,10 +84,9 @@ jobs:
 ```
 
 These values belong only to version `0.1.0-zap.20260804.6ccff768b7bc`. For a
-new version, find its target checksums in the signed
-[`zap.json`](https://dist.zolt.sh/releases/zap.json) release list and confirm
-them against the matching `.sha256` files in
-[`zoltsh/releases`](https://github.com/zoltsh/releases/releases).
+new version, copy the target's `.sha256` value from its immutable
+[`zoltsh/releases`](https://github.com/zoltsh/releases/releases) release. The
+action also checks it against the signed metadata stored with that release.
 
 ## Outputs
 

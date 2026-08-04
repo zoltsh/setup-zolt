@@ -36,7 +36,7 @@ describe('GitHub Actions adapter', () => {
             ['sha256', FIXTURE_SHA256],
         ]));
         expect(actionCore.messages).toEqual([
-            `Resolving exact Zolt ${FIXTURE_VERSION} for linux-x64 from channel zap.`,
+            `Resolving exact Zolt ${FIXTURE_VERSION} for linux-x64 from signed zap release metadata.`,
             `Installed Zolt ${FIXTURE_VERSION} for linux-x64; SHA-256 ${FIXTURE_SHA256}.`,
         ]);
         expect(transport.disposed).toBe(true);

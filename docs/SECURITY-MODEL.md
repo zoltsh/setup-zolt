@@ -27,7 +27,7 @@ checksum is an additional requirement for an exact version.
 - action inputs;
 - operating-system and architecture strings;
 - HTTP status, headers, and bodies;
-- channel-manifest or release-index JSON before signature verification;
+- channel-manifest JSON before signature verification;
 - every metadata field after parsing;
 - compressed and extracted archive entries;
 - pre-existing tool-cache contents;
@@ -37,16 +37,21 @@ checksum is an additional requirement for an exact version.
 
 ### Metadata
 
-Metadata and signature downloads have hard byte limits and cannot redirect.
-The action requests identity encoding and verifies the signature over the exact
-response bytes before strict UTF-8 decoding or JSON parsing. The parser rejects
-missing, unknown, duplicate, malformed, or excessive records and implements the
-publisher's current schema rather than speculative future fields.
+Metadata and signature downloads have hard byte limits. Current metadata from
+`dist.zolt.sh` cannot redirect. Frozen metadata on GitHub may follow at most five
+HTTPS redirects because GitHub serves release assets from a separate host;
+HTTPS-to-HTTP downgrade is disabled. The action requests identity encoding and
+verifies the signature over the exact response bytes before strict UTF-8
+decoding or JSON parsing. The parser rejects missing, unknown, duplicate,
+malformed, or excessive records and implements the publisher's current schema
+rather than speculative future fields.
 
-Metadata URLs are constructed from the fixed `https://dist.zolt.sh` origin. An
-archive URL must exactly match the channel's immutable `zoltsh/releases` GitHub
-release asset path. Signed metadata cannot substitute credentials, queries,
-fragments, another repository, another channel tag, or another filename.
+Latest metadata comes from the fixed `https://dist.zolt.sh` origin. Exact
+metadata comes from the signed channel snapshot attached to that version's
+immutable `zoltsh/releases` GitHub Release. Neither URL accepts a caller-supplied
+origin or path. Archive URLs must match the same fixed release asset layout.
+Signed metadata cannot substitute credentials, queries, fragments, another
+repository, another channel tag, or another filename.
 
 ### Moving selection
 
