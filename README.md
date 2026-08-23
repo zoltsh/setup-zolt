@@ -39,8 +39,8 @@ steps:
   - uses: zoltsh/setup-zolt@daaac64a8f2b58dd8ee0ab53b16085a64e20a0ad # v1.0.2
     with:
       channel: zap
-      version: 0.1.0-zap.20260804.6ccff768b7bc
-      sha256: e05b00e206d312ddf15954370ed904c114f7037f9da6a0a69cc7ddd4ee7e3f55
+      version: 0.1.0-zap.20260823.0ea7fe1473b4
+      sha256: 11c55e4117d55d1776c5eddca801b8e5f65cc9b16f2c5a8313b9f473547fdd57
 
   - run: zolt test
 ```

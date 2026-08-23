@@ -20,7 +20,7 @@ smoke.suite('committed GitHub Action bundle', { tags: ['artifact'] }, async (t) 
                 GITHUB_PATH: githubPath,
                 INPUT_CHANNEL: 'zap',
                 INPUT_SHA256: 'invalid',
-                INPUT_VERSION: '0.1.0-zap.20260804.6ccff768b7bc',
+                INPUT_VERSION: '0.1.0-zap.20260823.0ea7fe1473b4',
             },
         });
 

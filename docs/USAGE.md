@@ -17,8 +17,8 @@ steps:
   - uses: zoltsh/setup-zolt@daaac64a8f2b58dd8ee0ab53b16085a64e20a0ad # v1.0.2
     with:
       channel: zap
-      version: 0.1.0-zap.20260804.6ccff768b7bc
-      sha256: e05b00e206d312ddf15954370ed904c114f7037f9da6a0a69cc7ddd4ee7e3f55
+      version: 0.1.0-zap.20260823.0ea7fe1473b4
+      sha256: 11c55e4117d55d1776c5eddca801b8e5f65cc9b16f2c5a8313b9f473547fdd57
 
   - run: zolt toolchain sync
   - run: zolt test
@@ -58,13 +58,13 @@ jobs:
       matrix:
         include:
           - runner: ubuntu-24.04
-            sha256: e05b00e206d312ddf15954370ed904c114f7037f9da6a0a69cc7ddd4ee7e3f55
+            sha256: 11c55e4117d55d1776c5eddca801b8e5f65cc9b16f2c5a8313b9f473547fdd57
           - runner: ubuntu-24.04-arm
-            sha256: 7bb6a9c1953dbc4a2a242665da8a1219a6fb0f90e6f31c62c282e0523afd91a0
+            sha256: bf8a49aab74d2cc05f01f044b15d7b6b8f8263dc8aefe9168fbd827c3a6253c4
           - runner: macos-15-intel
-            sha256: ed576be109b0280ce1a4d6951d63db037c05491e2d1feab231f0118b7d843721
+            sha256: 1e5dc1502ebd3c4dc5672db1fd5e557cae7c894ae28dd5dc30b1569ccd47b41f
           - runner: macos-15
-            sha256: a7f899bdeab3f8027d52b4fabc8ebf69859a7c8f1d84d90d84817e977e22dc91
+            sha256: 7bca990eea0f22a4f4b354c22ac3109d89818ed969781d43e0cc6442b428d661
 
     runs-on: ${{ matrix.runner }}
 
@@ -76,14 +76,14 @@ jobs:
       - uses: zoltsh/setup-zolt@daaac64a8f2b58dd8ee0ab53b16085a64e20a0ad # v1.0.2
         with:
           channel: zap
-          version: 0.1.0-zap.20260804.6ccff768b7bc
+          version: 0.1.0-zap.20260823.0ea7fe1473b4
           sha256: ${{ matrix.sha256 }}
 
       - run: zolt toolchain sync
       - run: zolt test
 ```
 
-These values belong only to version `0.1.0-zap.20260804.6ccff768b7bc`. For a
+These values belong only to version `0.1.0-zap.20260823.0ea7fe1473b4`. For a
 new version, copy the target's `.sha256` value from its immutable
 [`zoltsh/releases`](https://github.com/zoltsh/releases/releases) release. The
 action also checks it against the signed metadata stored with that release.
