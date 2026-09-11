@@ -43,6 +43,6 @@
     "eslint-config-rubric": "0.1.0-alpha.0",
     "smoque": "0.1.1",
     "typescript": "6.0.3",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   }
 }
